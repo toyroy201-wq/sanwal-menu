@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SANWAL O SMACHI HALAL RESTAURANT - Menu</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Set Inter font globally -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0F172A; /* Dark Blue/Navy background for contrast */
+            min-height: 100vh;
+        }
+        .section-title {
+            color: #FACC15; /* Bright Gold for titles */
+            font-weight: 800;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+            letter-spacing: 0.05em;
+        }
+        .price-tag {
+            background-color: #FACC15; /* Bright Gold color for price background */
+            color: #4A0000; /* Dark contrast color */
+            font-weight: 800;
+            min-width: 50px;
+            text-align: center;
+        }
+        .item-card {
+            background-color: #ffffff; /* Clean white card background */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s, box-shadow 0.2s;
+            overflow: hidden;
+            border-left: 5px solid #8B0000; /* Deep Red accent */
+        }
+        .item-card:hover {
+            transform: scale(1.01);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .nav-button {
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .nav-button:hover {
+            transform: translateY(-1px);
+        }
+        .nav-button.active {
+            background-color: #8B0000;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        }
+        /* Home Page Styling */
+        #home-page {
+            min-height: calc(100vh - 150px); /* Fill the screen above the footer/nav */
+            background-color: #4A0000; /* Darker Red/Maroon background */
+            color: white;
+            border-radius: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        /* Modal for LLM results */
+        #gemini-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+        #gemini-modal {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        /* Loading Spinner */
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #8B0000;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Message Box for Copy Confirmation */
+        #message-box {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #38A169; /* Green for success */
+            color: white;
+            padding: 12px 24px;
+            border-radius: 9999px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            z-index: 60;
+            pointer-events: none; /* Allows clicks to pass through */
+        }
+        #message-box.show {
+            opacity: 1;
+        }
+
+        /* --- PDF/PRINT STYLES START (This makes all sections visible when printing) --- */
+        @media print {
+            body { background-color: white !important; }
+            .menu-section, #home-page {
+                display: block !important;
+                page-break-after: always;
+                box-shadow: none !important;
+                border: none !important;
+                margin-top: 20px;
+                padding: 10px !important;
+                color: #0F172A !important;
+                background-color: white !important;
+            }
+            #menu-nav, footer, .gemini-button, .order-button { display: none !important; }
+            #home-page {
+                background-color: white !important;
+                color: #0F172A !important;
+                border: 2px solid #FACC15;
+            }
+            #home-page h1, #home-page h2, #home-page p {
+                color: #8B0000 !important; 
+                text-shadow: none !important;
+                border-color: #8B0000 !important;
+            }
+            .item-card {
+                 box-shadow: none !important;
+                 border: 1px solid #ddd;
+                 border-left: 5px solid #8B0000;
+            }
+        }
+        /* --- PDF/PRINT STYLES END --- */
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div class="container mx-auto max-w-6xl">
+        
+        <!-- Navigation Menu -->
+        <nav id="menu-nav" class="mb-8 p-4 bg-white rounded-xl shadow-lg flex flex-wrap justify-center gap-4 sticky top-4 z-10">
+            <button onclick="showSection('home')" id="nav-home" class="nav-button bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded-lg active">HOME</button>
+            <button onclick="showSection('juices')" id="nav-juices" class="nav-button bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded-lg">JUICES</button>
+            <button onclick="showSection('breads')" id="nav-breads" class="nav-button bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded-lg">BREADS</button>
+            <button onclick="showSection('curries')" id="nav-curries" class="nav-button bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded-lg">CURRIES</button>
+            <button onclick="showSection('fastfood')" id="nav-fastfood" class="nav-button bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded-lg">MAINS</button>
+            <!-- NEW TEA BUTTON -->
+            <button onclick="showSection('tea')" id="nav-tea" class="nav-button bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded-lg">TEA</button>
+            
+            <!-- ✨ GEMINI FEATURE: Meal Suggestion Button -->
+            <button onclick="suggestPerfectPairing()" class="nav-button bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
+                ✨ Suggest a Meal
+            </button>
+            
+            <!-- "Share Menu Link" option removed as requested. -->
+        </nav>
+
+        <!-- Home Page (Initial View) -->
+        <div id="home-page" class="text-center p-12 shadow-2xl">
+            <h1 class="text-6xl sm:text-8xl font-black tracking-widest leading-none text-[#FACC15] mb-2">
+                SANWAL O SMACHI
+            </h1>
+            <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mt-4 border-b-4 border-[#FACC15] inline-block pb-2 px-6">
+                HALAL RESTAURANT & CAFE
+            </h2>
+            <p class="mt-8 text-xl text-gray-300 italic">Authentic Flavors. Fresh Ingredients.</p>
+
+            <!-- ORDERING INFO ADDED HERE -->
+            <div class="mt-12 p-6 bg-white bg-opacity-10 rounded-xl max-w-lg mx-auto border-2 border-[#FACC15] shadow-lg">
+                <h3 class="text-2xl font-bold text-white mb-4 uppercase tracking-wider">
+                    How to Order
+                </h3>
+                <p class="text-lg text-gray-200 mb-4">Please send your order details directly via:</p>
+                <div class="space-y-3">
+                    <a href="https://t.me/sanwal782" target="_blank" class="block text-2xl font-bold text-[#FACC15] hover:text-white transition duration-200 flex items-center justify-center">
+                        <!-- Telegram Icon (Simple star/guide icon used as placeholder) -->
+                        <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.19 8.71l-5.75 3.52c-.17.1-.38.1-.55 0L6.23 10.7c-.17-.1-.28-.31-.28-.53V8.82c0-.22.11-.42.28-.53l.56-.34 4.7-2.87c.17-.1.38-.1.55 0l4.7 2.87.56.34c.17.11.28.31.28.53v1.35c0 .22-.11.42-.28.53zM12 4.38c.32 0 .6.22.68.53l.63 2.52 2.52.63c.32.08.53.36.53.68 0 .32-.21.6-.53.68l-2.52.63-.63 2.52c-.08.32-.36.53-.68.53-.32 0-.6-.21-.68-.53l-.63-2.52-2.52-.63c-.32-.08-.36-.53-.68-.53-.32 0-.6-.21-.68-.53l-.63-2.52-2.52-.63c-.32-.08-.53-.36-.53-.68 0-.32.21-.6.53-.68l2.52-.63.63-2.52c.08-.32.36-.53.68-.53z"/>
+                        </svg>
+                        Telegram: @sanwal782
+                    </a>
+                    <a href="https://wa.me/923466631649" target="_blank" class="block text-2xl font-bold text-[#FACC15] hover:text-white transition duration-200 flex items-center justify-center">
+                        <!-- Phone/WhatsApp Icon -->
+                        <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C6.48 2 2 6.48 2 12c0 3.31 1.6 6.2 4.07 7.91l-.57 1.54c-.11.28.12.57.41.57h.03c.12 0 .23-.04.32-.12l1.64-1.42C9.44 21.43 10.7 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm3.17 12.17c-.18.18-.42.27-.66.27-.24 0-.48-.09-.66-.27l-1.92-1.92c-.1-.1-.23-.15-.35-.15s-.25.05-.35.15L9.67 13.9c-.18.18-.42.27-.66.27-.24 0-.48-.09-.66-.27l-.84-.84c-.18-.18-.27-.42-.27-.66 0-.24.09-.48.27-.66l1.92-1.92c.1-.1.23-.15.35-.15s.25.05.35.15l1.92 1.92c.18.18.27.42.27.66s-.09.48-.27.66l-1.92 1.92c-.1.1-.23-.15-.35-.15s-.25-.05-.35-.15l-1.92-1.92c-.18-.18-.27-.42-.27-.66s.09-.48.27-.66l1.92-1.92c.1-.1.23-.15.35-.15s.25.05.35.15l1.92 1.92c.18.18.27.42.27.66s-.09.48-.27.66z"/>
+                        </svg>
+                        WhatsApp / Phone: 03466631649
+                    </a>
+                    <p class="text-xs text-gray-400 pt-2 italic">
+                        (Order buttons copy the item name, but you must send the order via the contacts above.)
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MENU SECTIONS (Initially hidden) -->
+
+        <!-- 1. Fresh Juices Section -->
+        <div id="juices-section" class="menu-section hidden p-8 bg-white rounded-xl shadow-2xl">
+            <h3 class="section-title text-4xl mb-8 border-b-4 border-gray-200 pb-3">
+                FRESH JUICES
+            </h3>
+            <p class="text-gray-600 mb-6 font-medium">All our juices are freshly squeezed to order, packed with nutrients and vibrant flavor. Simply $4 each.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Juices List - All $4 -->
+                <div class="rounded-xl item-card p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2" data-item="MANGO FRESH JUICE" data-price="$4">
+                    <span class="text-lg font-semibold text-gray-800">MANGO FRESH JUICE</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('MANGO FRESH JUICE', '$4')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$4</span>
+                    </div>
+                </div>
+                <div class="rounded-xl item-card p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2" data-item="BANANA FRESH JUICE" data-price="$4">
+                    <span class="text-lg font-semibold text-gray-800">BANANA FRESH JUICE</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('BANANA FRESH JUICE', '$4')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$4</span>
+                    </div>
+                </div>
+                <div class="rounded-xl item-card p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2" data-item="KIWI FRESH JUICE" data-price="$4">
+                    <span class="text-lg font-semibold text-gray-800">KIWI FRESH JUICE</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('KIWI FRESH JUICE', '$4')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$4</span>
+                    </div>
+                </div>
+                <div class="rounded-xl item-card p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2" data-item="STRAWBERRY FRESH JUICE" data-price="$4">
+                    <span class="text-lg font-semibold text-gray-800">STRAWBERRY FRESH JUICE</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('STRAWBERRY FRESH JUICE', '$4')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$4</span>
+                    </div>
+                </div>
+                <div class="rounded-xl item-card p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2" data-item="ORANGE FRESH JUICE" data-price="$4">
+                    <span class="text-lg font-semibold text-gray-800">ORANGE FRESH JUICE</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('ORANGE FRESH JUICE', '$4')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$4</span>
+                    </div>
+                </div>
+                <div class="rounded-xl item-card p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2" data-item="PINEAPPLE FRESH JUICE" data-price="$4">
+                    <span class="text-lg font-semibold text-gray-800">PINEAPPLE FRESH JUICE</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('PINEAPPLE FRESH JUICE', '$4')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$4</span>
+                    </div>
+                </div>
+                <div class="rounded-xl item-card p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2" data-item="GRAPE FRESH JUICE" data-price="$4">
+                    <span class="text-lg font-semibold text-gray-800">GRAPE FRESH JUICE</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('GRAPE FRESH JUICE', '$4')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$4</span>
+                    </div>
+                </div>
+                <div class="rounded-xl item-card p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2" data-item="APPLE FRESH JUICE" data-price="$4">
+                    <span class="text-lg font-semibold text-gray-800">APPLE FRESH JUICE</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('APPLE FRESH JUICE', '$4')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$4</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Bread Section -->
+        <div id="breads-section" class="menu-section hidden p-8 bg-white rounded-xl shadow-2xl">
+            <h3 class="section-title text-4xl mb-8 border-b-4 border-gray-200 pb-3">
+                FRESH BAKED BREAD & PARATHAS
+            </h3>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <div class="col-span-1 lg:col-span-2 space-y-4">
+                    <h4 class="text-2xl font-bold text-[#8B0000] mb-3 border-b pb-2">Tandoor Breads (Naan & Roti)</h4>
+                    
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="ROTI (Plain Whole Wheat)" data-price="$2">
+                        <span class="text-lg font-medium text-gray-800">ROTI (Plain Whole Wheat)</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="copyToOrder('ROTI (Plain Whole Wheat)', '$2')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                            <span class="price-tag px-3 py-1 rounded-full">$2</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="NAAN (Plain White Flour)" data-price="$3">
+                        <span class="text-lg font-medium text-gray-800">NAAN (Plain White Flour)</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="copyToOrder('NAAN (Plain White Flour)', '$3')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                            <span class="price-tag px-3 py-1 rounded-full">$3</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="KULCHAA (Leavened Bread)" data-price="$3">
+                        <span class="text-lg font-medium text-gray-800">KULCHAA (Leavened Bread)</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="copyToOrder('KULCHAA (Leavened Bread)', '$3')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                            <span class="price-tag px-3 py-1 rounded-full">$3</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="GARLIC NAAN" data-price="$4">
+                        <span class="text-lg font-medium text-gray-800">GARLIC NAAN <span class="text-sm text-gray-500">(New Addition)</span></span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="copyToOrder('GARLIC NAAN (New Addition)', '$4')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                            <span class="price-tag px-3 py-1 rounded-full">$4</span>
+                        </div>
+                    </div>
+                    
+                    <h4 class="text-2xl font-bold text-[#8B0000] mt-6 mb-3 border-b pb-2">Stuffed Parathas & Specials</h4>
+                    
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="ALU PARATHA (Potato Stuffed)" data-price="$4">
+                        <span class="text-lg font-medium text-gray-800">ALU PARATHA (Potato Stuffed)</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="copyToOrder('ALU PARATHA (Potato Stuffed)', '$4')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                            <span class="price-tag px-3 py-1 rounded-full">$4</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="QEEMA PARATHA (Minced Meat Stuffed)" data-price="$5">
+                        <span class="text-lg font-medium text-gray-800">QEEMA PARATHA (Minced Meat Stuffed)</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="copyToOrder('QEEMA PARATHA (Minced Meat Stuffed)', '$5')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                            <span class="price-tag px-3 py-1 rounded-full">$5</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 3. Curries Section -->
+        <div id="curries-section" class="menu-section hidden p-8 bg-white rounded-xl shadow-2xl">
+            <h3 class="section-title text-4xl mb-8 border-b-4 border-gray-200 pb-3">
+                TRADITIONAL CURRIES & DAALS
+            </h3>
+            <p class="text-gray-600 mb-6 font-medium">Enjoy our rich, slow-cooked curries. Served fresh with your choice of bread or rice (not included).</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Curry List -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="CHICKEN KARAHI (Full)" data-price="$15">
+                    <span class="text-lg font-semibold text-gray-800">CHICKEN KARAHI (Full)</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('CHICKEN KARAHI (Full)', '$15')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$15</span>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="CHICKEN KARAHI (Half)" data-price="$8">
+                    <span class="text-lg font-semibold text-gray-800">CHICKEN KARAHI (Half)</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('CHICKEN KARAHI (Half)', '$8')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$8</span>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="DAAL MAASH" data-price="$7">
+                    <span class="text-lg font-semibold text-gray-800">DAAL MAASH (Split Urad Lentils)</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('DAAL MAASH', '$7')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$7</span>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="MIXED VEGETABLE CURRY" data-price="$7">
+                    <span class="text-lg font-semibold text-gray-800">MIXED VEGETABLE CURRY</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('MIXED VEGETABLE CURRY', '$7')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$7</span>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- 4. Fast Food/Mains Section -->
+        <div id="fastfood-section" class="menu-section hidden p-8 bg-white rounded-xl shadow-2xl">
+            <h3 class="section-title text-4xl mb-8 border-b-4 border-gray-200 pb-3">
+                MAIN DISHES & GRILLS
+            </h3>
+            <p class="text-gray-600 mb-6 font-medium">Our specialty grilled and fried items. Perfect for a quick meal or a satisfying lunch.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Fast Food List -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="CHICKEN LEG PIECE (Fried)" data-price="$4">
+                    <span class="text-lg font-semibold text-gray-800">CHICKEN LEG PIECE (Fried)</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('CHICKEN LEG PIECE (Fried)', '$4')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$4</span>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="CHICKEN CHEESE SANDWICH" data-price="$5">
+                    <span class="text-lg font-semibold text-gray-800">CHICKEN CHEESE SANDWICH</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('CHICKEN CHEESE SANDWICH', '$5')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$5</span>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="SHAMI KABAB" data-price="$2">
+                    <span class="text-lg font-semibold text-gray-800">SHAMI KABAB (Lentil & Meat Patty)</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('SHAMI KABAB', '$2')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$2</span>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="CHICKEN PATTY BURGER" data-price="$6">
+                    <span class="text-lg font-semibold text-gray-800">CHICKEN PATTY BURGER</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('CHICKEN PATTY BURGER', '$6')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$6</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Tea Section (NEW) -->
+        <div id="tea-section" class="menu-section hidden p-8 bg-white rounded-xl shadow-2xl">
+            <h3 class="section-title text-4xl mb-8 border-b-4 border-gray-200 pb-3">
+                FRESH HOT TEA
+            </h3>
+            <p class="text-gray-600 mb-6 font-medium">The perfect finish to any meal or a delightful break. Authentic Pakistani flavors.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="Special Pakistani Tea" data-price="$1">
+                    <span class="text-lg font-semibold text-gray-800">Special Pakistani Tea</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('Special Pakistani Tea', '$1')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$1</span>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="Karak Tea" data-price="$2">
+                    <span class="text-lg font-semibold text-gray-800">Karak Tea (Strong Brew)</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('Karak Tea', '$2')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$2</span>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="Green Tea Milk" data-price="$3">
+                    <span class="text-lg font-semibold text-gray-800">Green Tea Milk</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('Green Tea Milk', '$3')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$3</span>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl item-card gap-2" data-item="Pure Doodh Patti" data-price="$3">
+                    <span class="text-lg font-semibold text-gray-800">Pure Doodh Patti (Creamy Milk Tea)</span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToOrder('Pure Doodh Patti', '$3')" class="order-button text-sm bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow-md">Order</button>
+                        <span class="price-tag px-3 py-1 rounded-full">$3</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Footer -->
+        <footer class="mt-8 text-center text-gray-400 text-sm">
+            <p>&copy; 2025 SANWAL O SMACHI HALAL RESTAURANT. All rights reserved.</p>
+        </footer>
+
+    </div>
+
+    <!-- Message Box for Copy Confirmation (Replaces alert()) -->
+    <div id="message-box" class="hidden">Item copied to clipboard!</div>
+
+    <!-- Modal for Gemini Response -->
+    <div id="gemini-modal-overlay">
+        <div id="gemini-modal">
+            <h3 class="text-xl font-bold mb-4 text-[#8B0000]">Meal Suggestion</h3>
+            <div id="modal-content">
+                <!-- Content or Spinner goes here -->
+                <div class="spinner mx-auto" id="modal-spinner"></div>
+            </div>
+            <button onclick="closeModal()" class="mt-6 w-full bg-[#8B0000] text-white py-2 rounded-lg hover:bg-red-700 transition">Close</button>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Setup ---
+        const sections = {
+            'home': 'home-page',
+            'juices': 'juices-section',
+            'breads': 'breads-section',
+            'curries': 'curries-section',
+            'fastfood': 'fastfood-section',
+            'tea': 'tea-section' // <-- New section added
+        };
+
+        let currentSection = 'home';
+        
+        // --- Core Functions ---
+
+        /**
+         * Switches the visible content section and updates the navigation buttons.
+         * @param {string} sectionName - The name of the section to display (e.g., 'juices').
+         */
+        function showSection(sectionName) {
+            currentSection = sectionName;
+            
+            // Hide all sections
+            Object.values(sections).forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+
+            // Show the selected section
+            const newSection = document.getElementById(sections[sectionName]);
+            if (newSection) {
+                newSection.classList.remove('hidden');
+            }
+
+            // Update active state for navigation buttons
+            document.querySelectorAll('#menu-nav .nav-button').forEach(button => {
+                button.classList.remove('active', 'bg-red-700', 'text-white');
+                button.classList.add('bg-gray-100', 'text-gray-800');
+            });
+
+            const activeNavButton = document.getElementById(`nav-${sectionName}`);
+            if (activeNavButton) {
+                activeNavButton.classList.add('active', 'bg-[#8B0000]', 'text-white');
+                activeNavButton.classList.remove('bg-gray-100', 'text-gray-800');
+            }
+        }
+
+        /**
+         * Copies the item name and price to the clipboard and shows a confirmation message.
+         * @param {string} item - The name of the menu item.
+         * @param {string} price - The price of the menu item.
+         */
+        function copyToOrder(item, price) {
+            const textToCopy = `${item} (${price})`;
+            
+            // Use document.execCommand('copy') as navigator.clipboard may not work in iframes
+            const tempInput = document.createElement('textarea');
+            tempInput.value = textToCopy;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            
+            try {
+                document.execCommand('copy');
+                showMessageBox("Copied: " + textToCopy);
+            } catch (err) {
+                console.error('Could not copy text: ', err);
+                showMessageBox("Copy failed. Please manually copy: " + textToCopy);
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        /**
+         * Shows a temporary confirmation message box.
+         * @param {string} message - The message to display.
+         */
+        function showMessageBox(message) {
+            const box = document.getElementById('message-box');
+            box.textContent = message;
+            box.classList.remove('hidden');
+            box.classList.add('show');
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                box.classList.remove('show');
+                setTimeout(() => box.classList.add('hidden'), 300); // Wait for transition to finish before hiding fully
+            }, 3000);
+        }
+
+
+        // --- LLM Interaction Functions (Gemini API) ---
+
+        const apiKey = ""; // Canvas will automatically provide the API key
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+        
+        /** Retries a fetch request using exponential backoff. */
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.status === 429) {
+                        throw new Error('Rate limit exceeded');
+                    }
+                    if (!response.ok) {
+                        const errorBody = await response.text();
+                        throw new Error(`API Error: ${response.status} - ${errorBody}`);
+                    }
+                    return response;
+                } catch (error) {
+                    if (i === maxRetries - 1) {
+                        throw error;
+                    }
+                    // Exponential backoff wait time: 2^i seconds
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+        /**
+         * Opens the modal and fetches a meal suggestion from the Gemini LLM.
+         */
+        async function suggestPerfectPairing() {
+            const modalOverlay = document.getElementById('gemini-modal-overlay');
+            const modalContent = document.getElementById('modal-content');
+            
+            modalOverlay.style.display = 'flex';
+            modalContent.innerHTML = '<div class="spinner mx-auto" id="modal-spinner"></div><p class="text-center mt-4 text-gray-700">Thinking up the perfect Halal meal combination...</p>';
+
+            const userQuery = "Using the provided menu sections (Juices, Breads, Curries, Mains, Tea), suggest a perfect, balanced, and delicious meal pairing for a customer at SANWAL O SMACHI HALAL RESTAURANT. The suggestion should include one item from 3 different categories (e.g., 1 Main, 1 Curry, 1 Bread, or 1 Main, 1 Tea, 1 Bread, etc.) and a brief, appetizing description of why they pair well. Format the output as a concise, three-section plan: Item 1, Item 2, Item 3. Use prices from the menu (e.g., Chicken Karahi - $15).";
+            
+            const systemPrompt = "You are a professional restaurant sommelier and chef specializing in South Asian cuisine. Your goal is to guide the customer to a delicious, perfectly paired meal using items from the menu. Be encouraging and focus on flavor harmony.";
+            
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            try {
+                const response = await fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a suggestion right now. Please try again!";
+                
+                // Format the output nicely for the modal
+                modalContent.innerHTML = `<div class="text-left whitespace-pre-wrap text-gray-700">${text}</div>`;
+
+            } catch (error) {
+                console.error("Gemini API call failed:", error);
+                modalContent.innerHTML = `<p class="text-red-600 text-center">Connection Error. Please check your network or try again later. (Error: ${error.message})</p>`;
+            }
+        }
+
+        /**
+         * Closes the Gemini response modal.
+         */
+        function closeModal() {
+            document.getElementById('gemini-modal-overlay').style.display = 'none';
+            document.getElementById('modal-content').innerHTML = ''; // Clear content
+        }
+
+        // --- Initialization ---
+
+        // Ensure the home page is shown on load
+        window.onload = () => {
+            showSection('home');
+        };
+    </script>
+</body>
+</html>
+
